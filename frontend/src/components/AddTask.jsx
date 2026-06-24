@@ -1,6 +1,8 @@
 import { useState, useRef } from "react";
 import axios from "axios";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 function AddTask({ onAddTask, user, onSignIn }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -90,7 +92,7 @@ function AddTask({ onAddTask, user, onSignIn }) {
       if (priority) taskPrompt += `. Priority: ${priority}`;
 
       const response = await axios.post(
-        "http://localhost:5000/api/planner",
+        `${API_BASE_URL}/api/planner`,
         {
           task: taskPrompt,
         }

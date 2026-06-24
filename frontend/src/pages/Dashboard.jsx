@@ -5,6 +5,8 @@ import axios from "axios";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { auth, googleProvider } from "../firebase/firebase.js";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 // Default tasks for hackathon demonstration
 const defaultTasks = [
   {
@@ -113,7 +115,7 @@ function Dashboard() {
   // Sync tasks and achievements from backend
   const syncFromBackend = async (currentUser) => {
     try {
-      const tasksRes = await axios.get(`http://localhost:5000/api/planner/tasks/${currentUser.uid}`);
+      const tasksRes = await axios.get(`${API_BASE_URL}/api/planner/tasks/${currentUser.uid}`);
       if (tasksRes.data.tasks) {
         const loadedTasks = tasksRes.data.tasks;
         setTasks(loadedTasks);
@@ -131,10 +133,10 @@ function Dashboard() {
         const incomplete = loadedTasks.find((t) => !t.completed);
         setActiveTaskId(incomplete ? incomplete.id : loadedTasks.length > 0 ? loadedTasks[0].id : null);
         
-        await axios.post(`http://localhost:5000/api/planner/tasks/${currentUser.uid}`, { tasks: loadedTasks });
+        await axios.post(`${API_BASE_URL}/api/planner/tasks/${currentUser.uid}`, { tasks: loadedTasks });
       }
 
-      const achRes = await axios.get(`http://localhost:5000/api/planner/achievements/${currentUser.uid}`);
+      const achRes = await axios.get(`${API_BASE_URL}/api/planner/achievements/${currentUser.uid}`);
       if (achRes.data.achievements) {
         setAchievements(achRes.data.achievements);
         localStorage.setItem(`donext_achievements_${currentUser.uid}`, JSON.stringify(achRes.data.achievements));
@@ -147,7 +149,7 @@ function Dashboard() {
           deadlineConqueror: false,
         };
         setAchievements(loadedAchievements);
-        await axios.post(`http://localhost:5000/api/planner/achievements/${currentUser.uid}`, { achievements: loadedAchievements });
+        await axios.post(`${API_BASE_URL}/api/planner/achievements/${currentUser.uid}`, { achievements: loadedAchievements });
       }
     } catch (err) {
       console.error("Error syncing from backend", err);
@@ -191,7 +193,7 @@ function Dashboard() {
   useEffect(() => {
     if (!authLoading && user) {
       localStorage.setItem(`donext_tasks_${user.uid}`, JSON.stringify(tasks));
-      axios.post(`http://localhost:5000/api/planner/tasks/${user.uid}`, { tasks })
+      axios.post(`${API_BASE_URL}/api/planner/tasks/${user.uid}`, { tasks })
         .catch((err) => console.error("Failed to save tasks to backend", err));
     }
   }, [tasks, user, authLoading]);
@@ -200,7 +202,7 @@ function Dashboard() {
   useEffect(() => {
     if (!authLoading && user) {
       localStorage.setItem(`donext_achievements_${user.uid}`, JSON.stringify(achievements));
-      axios.post(`http://localhost:5000/api/planner/achievements/${user.uid}`, { achievements })
+      axios.post(`${API_BASE_URL}/api/planner/achievements/${user.uid}`, { achievements })
         .catch((err) => console.error("Failed to save achievements to backend", err));
     }
   }, [achievements, user, authLoading]);
@@ -211,7 +213,7 @@ function Dashboard() {
 
     const fetchLatest = async () => {
       try {
-        const response = await axios.get(`http://localhost:5000/api/planner/tasks/${user.uid}`);
+        const response = await axios.get(`${API_BASE_URL}/api/planner/tasks/${user.uid}`);
         if (response.data.tasks) {
           const backendStr = JSON.stringify(response.data.tasks);
           const localStr = JSON.stringify(tasks);
@@ -233,7 +235,7 @@ function Dashboard() {
           }
         }
         
-        const achResponse = await axios.get(`http://localhost:5000/api/planner/achievements/${user.uid}`);
+        const achResponse = await axios.get(`${API_BASE_URL}/api/planner/achievements/${user.uid}`);
         if (achResponse.data.achievements) {
           const backendAchStr = JSON.stringify(achResponse.data.achievements);
           const localAchStr = JSON.stringify(achievements);
@@ -300,7 +302,7 @@ function Dashboard() {
     const fetchRecommendation = async () => {
       setLoadingRecommendation(true);
       try {
-        const response = await axios.post("http://localhost:5000/api/planner/recommend", {
+        const response = await axios.post(`${API_BASE_URL}/api/planner/recommend`, {
           tasks: tasks,
         });
         setAiRecommendation(response.data.recommendation);
@@ -557,7 +559,7 @@ function Dashboard() {
 
     setChatLoading(true);
     try {
-      const response = await axios.post("http://localhost:5000/api/planner/chat", {
+      const response = await axios.post(`${API_BASE_URL}/api/planner/chat`, {
         message: message.trim(),
         tasks: tasks,
       });
