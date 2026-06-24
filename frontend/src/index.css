@@ -1,112 +1,378 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
-:root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+@theme {
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Outfit', system-ui, -apple-system, sans-serif;
+  
+  --color-gemini-bg: #131314;
+  --color-gemini-bg-light: #1e1f20;
+  --color-gemini-card: #1e1f20;
+  --color-gemini-card-hover: #2f3032;
+  --color-gemini-border: #2e3032;
+  --color-gemini-border-hover: #3c4043;
+  --color-gemini-text: #e3e3e3;
+  --color-gemini-text-muted: #c4c7c5;
+  
+  --color-gemini-blue: #4285f4;
+  --color-gemini-purple: #9b72cb;
+  --color-gemini-pink: #d96570;
+  --color-gemini-yellow: #f1ae44;
+}
+
+:root {
+  --sans: 'Inter', system-ui, sans-serif;
+  --heading: 'Outfit', system-ui, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
+  font: 16px/150% var(--sans);
+  letter-spacing: 0.15px;
+  color-scheme: dark;
+  color: #e3e3e3;
+  background-color: #131314;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
 }
 
 body {
   margin: 0;
+  padding: 0;
+  background-color: #131314;
+  color: #e3e3e3;
+  font-family: var(--sans);
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
 #root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
+  width: 100%;
   box-sizing: border-box;
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+/* Gemini Theme Custom Classes */
+
+/* Brand Gradient Text */
+.gemini-text-gradient {
+  background: linear-gradient(
+    74deg,
+    #4285f4 0%,
+    #9b72cb 30%,
+    #d96570 65%,
+    #f1ae44 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gemini-gradient-shift 8s linear infinite;
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
+/* Background Gradients */
+.gemini-bg-gradient {
+  background: linear-gradient(
+    74deg,
+    #4285f4 0%,
+    #9b72cb 30%,
+    #d96570 65%,
+    #f1ae44 100%
+  );
+  background-size: 200% auto;
+  animation: gemini-gradient-shift 8s linear infinite;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
+/* Glowing Border Elements */
+.gemini-border-glow {
+  position: relative;
+}
+
+.gemini-border-glow::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(66, 133, 244, 0.4),
+    rgba(155, 114, 203, 0.4),
+    rgba(217, 101, 112, 0.4),
+    rgba(241, 174, 68, 0.4)
+  );
+  -webkit-mask: 
+     linear-gradient(#fff 0 0) content-box, 
+     linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Glassmorphism Panel (Redesigned as Flat Material 3 Cards for Google Gemini Theme) */
+.glass-card {
+  background-color: var(--color-gemini-card);
+  border: 1px solid var(--color-gemini-border);
+  box-shadow: none;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  background-color: var(--color-gemini-card-hover);
+  border-color: var(--color-gemini-border-hover);
+  box-shadow: none;
+}
+
+/* Shimmer Loading State */
+.shimmer-bg {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 25%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.03) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Gemini Shimmer Wave Loading Animation */
+.gemini-shimmer-wave {
+  background: linear-gradient(
+    90deg,
+    rgba(66, 133, 244, 0.15) 0%,
+    rgba(155, 114, 203, 0.25) 25%,
+    rgba(217, 101, 112, 0.25) 50%,
+    rgba(241, 174, 68, 0.15) 75%,
+    rgba(66, 133, 244, 0.15) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite linear;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-gemini-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 4px;
-  color: var(--text-h);
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Keyframes */
+@keyframes gemini-gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* Entry animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in-up {
+  opacity: 0;
+  animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-in-right {
+  opacity: 0;
+  animation: fadeInRight 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-scale-in {
+  opacity: 0;
+  animation: scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Staggered delays */
+.delay-75 { animation-delay: 75ms; }
+.delay-100 { animation-delay: 100ms; }
+.delay-150 { animation-delay: 150ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }
+
+/* Gemini Splash Keyframe Animations */
+@keyframes rotateGlow {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.1);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+@keyframes scaleGlow {
+  0%, 100% {
+    transform: scale(1);
+    filter: brightness(1) drop-shadow(0 0 15px rgba(155, 114, 203, 0.3));
+  }
+  55% {
+    transform: scale(1.08);
+    filter: brightness(1.2) drop-shadow(0 0 35px rgba(66, 133, 244, 0.5));
+  }
+}
+
+@keyframes loaderBar {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0%);
+  }
+}
+
+.animate-rotate-glow {
+  animation: rotateGlow 10s ease-in-out infinite;
+}
+
+.animate-gemini-spark {
+  animation: scaleGlow 2.5s ease-in-out infinite;
+}
+
+.animate-loader-bar {
+  animation: loaderBar 1.8s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+/* Drifting Background Aurora Blobs matching Google Gemini Web App */
+.gemini-bg-glow-container {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+  background-color: var(--color-gemini-bg);
+}
+
+.gemini-glow-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(140px);
+  opacity: 0.12;
+  mix-blend-mode: screen;
+}
+
+.gemini-glow-blob-1 {
+  top: -15%;
+  left: 15%;
+  width: 50vw;
+  height: 50vw;
+  background: radial-gradient(circle, var(--color-gemini-blue) 0%, transparent 75%);
+  animation: drift-1 28s infinite alternate ease-in-out;
+}
+
+.gemini-glow-blob-2 {
+  bottom: -15%;
+  right: 10%;
+  width: 60vw;
+  height: 60vw;
+  background: radial-gradient(circle, var(--color-gemini-purple) 0%, transparent 75%);
+  animation: drift-2 32s infinite alternate ease-in-out;
+}
+
+.gemini-glow-blob-3 {
+  top: 35%;
+  right: 25%;
+  width: 45vw;
+  height: 45vw;
+  background: radial-gradient(circle, var(--color-gemini-pink) 0%, transparent 75%);
+  animation: drift-3 24s infinite alternate ease-in-out;
+}
+
+@keyframes drift-1 {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(8vw, 6vh) scale(1.15); }
+  100% { transform: translate(-4vw, -8vh) scale(0.95); }
+}
+
+@keyframes drift-2 {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-6vw, -8vh) scale(0.85); }
+  100% { transform: translate(10vw, 4vh) scale(1.1); }
+}
+
+@keyframes drift-3 {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-4vw, 12vh) scale(1.12); }
+  100% { transform: translate(8vw, -4vh) scale(0.98); }
 }
