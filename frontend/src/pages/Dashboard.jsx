@@ -339,7 +339,8 @@ function Dashboard() {
       alert("Successfully synced task and subtasks to Google Tasks!");
     } catch (error) {
       console.error("Google Tasks sync failed", error);
-      alert("Failed to sync to Google Tasks. Make sure authorization is active.");
+      const errMsg = error.response?.data?.error?.message || error.message || "Unknown error";
+      alert(`Failed to sync to Google Tasks: ${errMsg}`);
     } finally {
       setGoogleSyncing(prev => ({ ...prev, tasks: false }));
     }
@@ -356,7 +357,8 @@ function Dashboard() {
       alert(`Study focus block scheduled on Google Calendar!\nEvent: ${event.summary}\nTime: ${new Date(event.start.dateTime).toLocaleString()}`);
     } catch (error) {
       console.error("Google Calendar sync failed", error);
-      alert("Failed to schedule on Google Calendar. Verify calendar permission scopes.");
+      const errMsg = error.response?.data?.error?.message || error.message || "Unknown error";
+      alert(`Failed to schedule on Google Calendar: ${errMsg}`);
     } finally {
       setGoogleSyncing(prev => ({ ...prev, calendar: false }));
     }
@@ -374,7 +376,8 @@ function Dashboard() {
       window.open(result.meetingUrl, "_blank");
     } catch (error) {
       console.error("Google Meet creation failed", error);
-      alert("Failed to generate Google Meet room. Ensure your Google account has Meet/Calendar access.");
+      const errMsg = error.response?.data?.error?.message || error.message || "Unknown error";
+      alert(`Failed to generate Google Meet room: ${errMsg}`);
     } finally {
       setGoogleSyncing(prev => ({ ...prev, meet: false }));
     }
@@ -394,7 +397,8 @@ function Dashboard() {
       }
     } catch (error) {
       console.error("Google Sheets export failed", error);
-      alert("Failed to export statistics to Google Sheets.");
+      const errMsg = error.response?.data?.error?.message || error.message || "Unknown error";
+      alert(`Failed to export statistics to Google Sheets: ${errMsg}`);
     } finally {
       setGoogleSyncing(prev => ({ ...prev, sheets: false }));
     }
