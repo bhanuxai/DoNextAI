@@ -11,10 +11,7 @@ import {
   exportStatsToGoogleSheets,
 } from "../services/googleApi.js";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 
-  (window.location.hostname.includes("localhost") || window.location.hostname.includes("127.0.0.1")
-    ? "http://localhost:5000"
-    : "https://donextai.onrender.com");
+const API_BASE_URL = "https://donextai.onrender.com";
 
 // Default tasks for hackathon demonstration
 const defaultTasks = [
