@@ -2,8 +2,14 @@ import { useState, useEffect, useRef } from "react";
 import AddTask from "../components/AddTask";
 import TaskPlan from "../components/TaskPlan";
 import axios from "axios";
-import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
+import { signInWithPopup, signOut, onAuthStateChanged, GoogleAuthProvider } from "firebase/auth";
 import { auth, googleProvider } from "../firebase/firebase.js";
+import {
+  syncToGoogleTasks,
+  scheduleOnGoogleCalendar,
+  createGoogleMeetRoom,
+  exportStatsToGoogleSheets,
+} from "../services/googleApi.js";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -68,6 +74,7 @@ function Dashboard() {
 
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [googleAccessToken, setGoogleAccessToken] = useState(null);
   const [showLoginPage, setShowLoginPage] = useState(false);
 
   // Load tasks from state (hydrated by auth listener)
@@ -179,10 +186,17 @@ function Dashboard() {
         setUser(currentUser);
         setShowLoginPage(false); // Close login view on successful login
         syncFromBackend(currentUser);
+
+        // Restore Google Access Token from localStorage
+        const savedToken = localStorage.getItem(`donext_google_token_${currentUser.uid}`);
+        if (savedToken) {
+          setGoogleAccessToken(savedToken);
+        }
       } else {
         setUser(null);
         setTasks([]);
         setActiveTaskId(null);
+        setGoogleAccessToken(null);
       }
       setAuthLoading(false);
     });
@@ -281,10 +295,108 @@ function Dashboard() {
   // Google Sign-In and Sign-Out triggers
   const handleGoogleSignIn = async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
+      // Add required scopes dynamically
+      googleProvider.addScope("https://www.googleapis.com/auth/tasks");
+      googleProvider.addScope("https://www.googleapis.com/auth/calendar");
+      googleProvider.addScope("https://www.googleapis.com/auth/drive.readonly");
+      googleProvider.addScope("https://www.googleapis.com/auth/spreadsheets");
+
+      const result = await signInWithPopup(auth, googleProvider);
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      if (credential) {
+        const token = credential.accessToken;
+        setGoogleAccessToken(token);
+        localStorage.setItem(`donext_google_token_${result.user.uid}`, token);
+
+        // Instantly mark the Calendar Sync achievement since they linked their Google Workspace
+        setAchievements((prev) => ({
+          ...prev,
+          calendarSync: true,
+        }));
+      }
     } catch (error) {
       console.error("Sign in failed", error);
       alert(`Sign in failed: ${error.code || error.message || "Please check your internet connection."}`);
+    }
+  };
+
+  // Google REST API Integration Actions & Loading states
+  const [googleSyncing, setGoogleSyncing] = useState({
+    tasks: false,
+    calendar: false,
+    meet: false,
+    sheets: false,
+  });
+
+  const handleSyncToGoogleTasks = async (task) => {
+    if (!googleAccessToken) {
+      alert("Please connect your Google Workspace account first.");
+      return;
+    }
+    setGoogleSyncing(prev => ({ ...prev, tasks: true }));
+    try {
+      await syncToGoogleTasks(task, googleAccessToken);
+      alert("Successfully synced task and subtasks to Google Tasks!");
+    } catch (error) {
+      console.error("Google Tasks sync failed", error);
+      alert("Failed to sync to Google Tasks. Make sure authorization is active.");
+    } finally {
+      setGoogleSyncing(prev => ({ ...prev, tasks: false }));
+    }
+  };
+
+  const handleScheduleOnGoogleCalendar = async (task) => {
+    if (!googleAccessToken) {
+      alert("Please connect your Google Workspace account first.");
+      return;
+    }
+    setGoogleSyncing(prev => ({ ...prev, calendar: true }));
+    try {
+      const event = await scheduleOnGoogleCalendar(task, googleAccessToken);
+      alert(`Study focus block scheduled on Google Calendar!\nEvent: ${event.summary}\nTime: ${new Date(event.start.dateTime).toLocaleString()}`);
+    } catch (error) {
+      console.error("Google Calendar sync failed", error);
+      alert("Failed to schedule on Google Calendar. Verify calendar permission scopes.");
+    } finally {
+      setGoogleSyncing(prev => ({ ...prev, calendar: false }));
+    }
+  };
+
+  const handleCreateMeetRoom = async (task) => {
+    if (!googleAccessToken) {
+      alert("Please connect your Google Workspace account first.");
+      return;
+    }
+    setGoogleSyncing(prev => ({ ...prev, meet: true }));
+    try {
+      const result = await createGoogleMeetRoom(task, googleAccessToken);
+      alert(`Google Meet room created successfully!\n\nJoin Link: ${result.meetingUrl}`);
+      window.open(result.meetingUrl, "_blank");
+    } catch (error) {
+      console.error("Google Meet creation failed", error);
+      alert("Failed to generate Google Meet room. Ensure your Google account has Meet/Calendar access.");
+    } finally {
+      setGoogleSyncing(prev => ({ ...prev, meet: false }));
+    }
+  };
+
+  const handleExportStatsToGoogleSheets = async () => {
+    if (!googleAccessToken) {
+      alert("Please connect your Google Workspace account first.");
+      return;
+    }
+    setGoogleSyncing(prev => ({ ...prev, sheets: true }));
+    try {
+      const result = await exportStatsToGoogleSheets(tasks, achievements, googleAccessToken);
+      alert("Successfully created and exported your roadmaps to Google Sheets!");
+      if (result.spreadsheetUrl) {
+        window.open(result.spreadsheetUrl, "_blank");
+      }
+    } catch (error) {
+      console.error("Google Sheets export failed", error);
+      alert("Failed to export statistics to Google Sheets.");
+    } finally {
+      setGoogleSyncing(prev => ({ ...prev, sheets: false }));
     }
   };
 
@@ -1021,6 +1133,33 @@ function Dashboard() {
               <p className="text-[9px] text-slate-500 mt-2.5 leading-relaxed m-0 text-center">
                 If the Gemini API key runs out of daily credits, DoNext AI automatically failovers to the local failsafe roadmap generator to guarantee uninterrupted presentations.
               </p>
+              {googleAccessToken ? (
+                <button
+                  onClick={handleExportStatsToGoogleSheets}
+                  disabled={googleSyncing.sheets}
+                  className="w-full mt-4 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/25 font-semibold py-2.5 px-4 rounded-full text-xs transition-colors cursor-pointer flex items-center justify-center gap-2"
+                >
+                  {googleSyncing.sheets ? (
+                    <div className="w-3.5 h-3.5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <svg className="w-3.5 h-3.5 fill-current text-emerald-400" viewBox="0 0 24 24">
+                      <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM6 6h5v5H6V6zm0 7h5v5H6v-5zm12 5h-5v-2h5v2zm0-4h-5v-2h5v2zm0-4h-5V6h5v3z"/>
+                    </svg>
+                  )}
+                  <span>Export Roadmaps to Google Sheets</span>
+                </button>
+              ) : (
+                <button
+                  onClick={handleGoogleSignIn}
+                  className="w-full mt-4 bg-gemini-purple/10 hover:bg-gemini-purple/20 text-gemini-purple border border-gemini-purple/25 font-semibold py-2.5 px-4 rounded-full text-xs transition-colors cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <svg className="w-3.5 h-3.5 fill-current text-gemini-purple" viewBox="0 0 24 24">
+                    <path d="M12.24 10.285V13.4h6.887C18.2 15.614 15.645 18 12.24 18c-3.86 0-7-3.14-7-7s3.14-7 7-7c1.7 0 3.3 0.6 4.6 1.7l2.4-2.4C17.3 1.5 14.9 0.7 12.24 0.7 6.033 0.7 1 5.733 1 12s5.033 11.3 11.24 11.3c6.47 0 10.77-4.5 10.77-10.9 0-.74-.08-1.3-.23-1.89H12.24z"/>
+                  </svg>
+                  <span>Connect Google Workspace API</span>
+                </button>
+              )}
+
               <button
                 onClick={handleSignOut}
                 className="w-full mt-4 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/25 font-semibold py-2 px-4 rounded-full text-xs transition-colors cursor-pointer"
@@ -1431,11 +1570,103 @@ function Dashboard() {
               </div>
 
               {/* Add Task Prompt Box */}
-              <AddTask onAddTask={handleAddTask} user={user} onSignIn={() => setShowLoginPage(true)} />
+              <AddTask onAddTask={handleAddTask} user={user} onSignIn={() => setShowLoginPage(true)} googleAccessToken={googleAccessToken} />
 
               {/* Checklist Roadmap */}
               {activeTask ? (
-                <TaskPlan plan={activeTask.subtasks || []} onToggleTask={handleToggleSubtask} />
+                <div className="glass-card border border-gemini-border rounded-2xl p-5 sm:p-6 space-y-5">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-gemini-border/40 pb-4">
+                    <div className="min-w-0">
+                      <h3 className="font-heading font-semibold text-lg text-white m-0 flex items-center gap-2 flex-wrap">
+                        <span>Roadmap: {activeTask.title}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wide uppercase ${
+                          activeTask.priority === "High"
+                            ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                            : activeTask.priority === "Medium"
+                            ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                            : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                        }`}>
+                          {activeTask.priority}
+                        </span>
+                      </h3>
+                      {activeTask.description && (
+                        <p className="text-xs text-gemini-text-muted mt-2 leading-relaxed max-w-xl">
+                          {activeTask.description}
+                        </p>
+                      )}
+                      
+                      {activeTask.googleDriveFile && (
+                        <div className="flex items-center gap-2 mt-3">
+                          <a
+                            href={activeTask.googleDriveFile.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[11px] bg-gemini-blue/15 border border-gemini-blue/30 text-gemini-blue rounded-full px-3 py-1 flex items-center gap-1.5 hover:bg-gemini-blue/20 transition-all font-medium"
+                            title="Open file in Google Drive"
+                          >
+                            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
+                              <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-6 12H7v-2h6v2zm3-4H7V9h9v2z" />
+                            </svg>
+                            <span className="truncate max-w-[200px]">{activeTask.googleDriveFile.name}</span>
+                          </a>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Google Action buttons for activeTask */}
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
+                      <button
+                        onClick={() => handleSyncToGoogleTasks(activeTask)}
+                        disabled={googleSyncing.tasks}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-white/5 border border-white/5 hover:border-white/10 hover:bg-white/10 text-white transition-all cursor-pointer disabled:opacity-50"
+                        title="Sync task list to Google Tasks"
+                      >
+                        {googleSyncing.tasks ? (
+                          <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                          <svg className="w-3 h-3 fill-current text-emerald-400" viewBox="0 0 24 24">
+                            <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z" />
+                          </svg>
+                        )}
+                        <span>Sync Tasks</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleScheduleOnGoogleCalendar(activeTask)}
+                        disabled={googleSyncing.calendar}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-white/5 border border-white/5 hover:border-white/10 hover:bg-white/10 text-white transition-all cursor-pointer disabled:opacity-50"
+                        title="Schedule 30-min study slot on Google Calendar"
+                      >
+                        {googleSyncing.calendar ? (
+                          <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                          <svg className="w-3 h-3 fill-none stroke-current text-blue-400" viewBox="0 0 24 24" strokeWidth="2.5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        )}
+                        <span>Schedule Block</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleCreateMeetRoom(activeTask)}
+                        disabled={googleSyncing.meet}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-white/5 border border-white/5 hover:border-white/10 hover:bg-white/10 text-white transition-all cursor-pointer disabled:opacity-50"
+                        title="Generate ad-hoc Google Meet group study room link"
+                      >
+                        {googleSyncing.meet ? (
+                          <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                          <svg className="w-3 h-3 fill-none stroke-current text-purple-400" viewBox="0 0 24 24" strokeWidth="2.5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                        )}
+                        <span>Instant Meet</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <TaskPlan plan={activeTask.subtasks || []} onToggleTask={handleToggleSubtask} />
+                </div>
               ) : (
                 <div className="glass-card border border-gemini-border rounded-2xl p-6 text-center text-gemini-text-muted text-sm">
                   Add a task above to generate your first AI roadmap!

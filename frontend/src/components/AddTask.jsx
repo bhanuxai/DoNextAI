@@ -1,9 +1,9 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import axios from "axios";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-function AddTask({ onAddTask, user, onSignIn }) {
+function AddTask({ onAddTask, user, onSignIn, googleAccessToken }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [deadline, setDeadline] = useState("");
@@ -12,6 +12,63 @@ function AddTask({ onAddTask, user, onSignIn }) {
   const [loading, setLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [voiceUsed, setVoiceUsed] = useState(false);
+  const [attachedFile, setAttachedFile] = useState(null);
+
+  // Load Google Picker API dynamically
+  useEffect(() => {
+    if (!window.gapi) {
+      const script = document.createElement("script");
+      script.src = "https://apis.google.com/js/api.js";
+      script.async = true;
+      script.defer = true;
+      script.onload = () => {
+        window.gapi.load("picker", () => {
+          console.log("Google Picker API loaded.");
+        });
+      };
+      document.body.appendChild(script);
+    } else {
+      window.gapi.load("picker");
+    }
+  }, []);
+
+  const handleDrivePicker = () => {
+    if (!googleAccessToken) {
+      alert("Please connect your Google Workspace account to attach Google Drive files.");
+      return;
+    }
+
+    if (!window.google || !window.google.picker) {
+      alert("Google Drive Picker library is still loading. Please try again in a moment.");
+      return;
+    }
+
+    try {
+      const developerKey = "AIzaSyBns0Ll9lj7PC41gWDd_K4VgsQ-qrh4HBc"; 
+      const view = new window.google.picker.View(window.google.picker.ViewId.DOCS);
+      
+      const picker = new window.google.picker.PickerBuilder()
+        .addView(view)
+        .setOAuthToken(googleAccessToken)
+        .setDeveloperKey(developerKey)
+        .setCallback((data) => {
+          if (data.action === window.google.picker.Action.PICKED) {
+            const doc = data.docs[0];
+            setAttachedFile({
+              id: doc.id,
+              name: doc.name,
+              url: doc.url,
+            });
+          }
+        })
+        .build();
+      
+      picker.setVisible(true);
+    } catch (err) {
+      console.error("Error launching Google Picker:", err);
+      alert("Failed to open Google Drive Picker. Please check popups and authorization.");
+    }
+  };
 
   const recognitionRef = useRef(null);
 
@@ -88,6 +145,7 @@ function AddTask({ onAddTask, user, onSignIn }) {
     try {
       let taskPrompt = title;
       if (description) taskPrompt += `. Description: ${description}`;
+      if (attachedFile) taskPrompt += `. Linked Reference Document: ${attachedFile.name}`;
       if (deadline) taskPrompt += `. Deadline: ${deadline}`;
       if (priority) taskPrompt += `. Priority: ${priority}`;
 
@@ -115,6 +173,7 @@ function AddTask({ onAddTask, user, onSignIn }) {
         completed: false,
         subtasks: subtasksList,
         createdViaVoice: voiceUsed, // Tag voice usage
+        googleDriveFile: attachedFile,
       };
 
       onAddTask(newTask);
@@ -126,6 +185,7 @@ function AddTask({ onAddTask, user, onSignIn }) {
       setPriority("Medium");
       setShowDesc(false);
       setVoiceUsed(false); // Reset voice flag
+      setAttachedFile(null); // Reset attached file
     } catch (error) {
       console.error(error);
       alert("Failed to generate task plan. Make sure the backend server is running.");
@@ -196,6 +256,25 @@ function AddTask({ onAddTask, user, onSignIn }) {
                   setDescription(e.target.value);
                 }}
               />
+            </div>
+          )}
+
+          {attachedFile && (
+            <div className="pl-11 pr-4 flex items-center gap-2 mb-2">
+              <span className="text-xs bg-gemini-blue/15 border border-gemini-blue/30 text-gemini-blue rounded-full px-3 py-1.5 flex items-center gap-1.5 shadow-sm shadow-gemini-blue/5">
+                <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
+                  <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-6 12H7v-2h6v2zm3-4H7V9h9v2z" />
+                </svg>
+                <span className="truncate max-w-[180px] font-medium">{attachedFile.name}</span>
+                <button
+                  type="button"
+                  onClick={() => setAttachedFile(null)}
+                  className="hover:text-red-400 font-bold transition-colors cursor-pointer text-xs ml-1.5"
+                  title="Remove linked file"
+                >
+                  ✕
+                </button>
+              </span>
             </div>
           )}
 
@@ -275,6 +354,26 @@ function AddTask({ onAddTask, user, onSignIn }) {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7" />
                 </svg>
                 <span>{showDesc ? "Hide Notes" : "Add Notes"}</span>
+              </button>
+
+              {/* Google Drive Picker */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  if (handleInteraction(e)) return;
+                  handleDrivePicker();
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                  attachedFile
+                    ? "bg-gemini-blue/10 border-gemini-blue/20 text-gemini-blue font-semibold hover:bg-gemini-blue/15"
+                    : "bg-white/5 border-white/5 hover:border-white/10 hover:bg-white/10 text-gemini-text-muted hover:text-white"
+                }`}
+                title="Attach study guides, slides or docs from Google Drive"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                </svg>
+                <span>{attachedFile ? "File Linked" : "Add Drive File"}</span>
               </button>
             </div>
 
