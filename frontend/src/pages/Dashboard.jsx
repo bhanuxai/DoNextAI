@@ -284,7 +284,7 @@ function Dashboard() {
       await signInWithPopup(auth, googleProvider);
     } catch (error) {
       console.error("Sign in failed", error);
-      alert("Sign in failed. Please check your internet connection.");
+      alert(`Sign in failed: ${error.code || error.message || "Please check your internet connection."}`);
     }
   };
 
