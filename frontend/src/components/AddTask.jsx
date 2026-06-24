@@ -1,7 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_BASE_URL = import.meta.env.VITE_API_URL || 
+  (window.location.hostname.includes("localhost") || window.location.hostname.includes("127.0.0.1")
+    ? "http://localhost:5000"
+    : "https://donextai.onrender.com");
 
 function AddTask({ onAddTask, user, onSignIn, googleAccessToken }) {
   const [title, setTitle] = useState("");
