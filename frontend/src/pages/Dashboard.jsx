@@ -1,7 +1,10 @@
+import { useState } from "react";
 import AddTask from "../components/AddTask";
 import TaskPlan from "../components/TaskPlan";
 
 function Dashboard() {
+  const [plan, setPlan] = useState([]);
+
   return (
     <div style={{ padding: "20px" }}>
       <h1>DoNext AI</h1>
@@ -15,8 +18,8 @@ function Dashboard() {
       <h2>AI Recommendation</h2>
       <div>Start frontend development today.</div>
 
-      <AddTask />
-      <TaskPlan />
+      <AddTask setPlan={setPlan} />
+      <TaskPlan plan={plan} />
     </div>
   );
 }

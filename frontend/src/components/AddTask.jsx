@@ -1,12 +1,22 @@
 import { useState } from "react";
 
-function AddTask() {
+function AddTask({ setPlan }) {
   const [task, setTask] = useState({
     title: "",
     deadline: "",
     priority: "Medium",
     description: "",
   });
+  const generateMockPlan = () => {
+  setPlan([
+    "Research Requirements",
+    "Design UI",
+    "Setup Backend",
+    "Integrate Gemini API",
+    "Testing",
+    "Deployment"
+  ]);
+};
 
   return (
     <div className="mt-8 bg-slate-900 border border-slate-800 rounded-2xl p-6">
@@ -57,9 +67,12 @@ function AddTask() {
           }
         />
 
-        <button className="w-full bg-blue-600 hover:bg-blue-700 rounded-xl py-3 font-semibold">
-          Generate AI Plan
-        </button>
+        <button
+  onClick={generateMockPlan}
+  className="w-full bg-blue-600 hover:bg-blue-700 rounded-xl py-3 font-semibold"
+>
+  Generate AI Plan
+</button>
       </div>
     </div>
   );
